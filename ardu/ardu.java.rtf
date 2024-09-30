@@ -1,0 +1,114 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2812
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 // Variables for sensor data with noise reduction\
+float eegValue = 0;\
+float emgValue = 0;\
+float spo2Value = 0;\
+\
+// Variables to simulate randomness and noise\
+float previousEeg = 512;\
+float previousEmg = 512;\
+float previousSpo2 = 95;\
+\
+float alpha = 0.8; // Smoothing factor for noise reduction\
+\
+int graphWidth = 800;\
+int graphHeight = 600;\
+int graphDuration = 10000; // 10 seconds visualization\
+int updateInterval = 100; // Update every 100 ms\
+int totalPoints = graphDuration / updateInterval;\
+\
+float[] eegData = new float[totalPoints];\
+float[] emgData = new float[totalPoints];\
+float[] spo2Data = new float[totalPoints];\
+\
+int currentIndex = 0;\
+int timeElapsed = 0;\
+\
+void setup() \{\
+  size(1200, 800); // Main window size\
+  \
+  // Set random seed for repeatable random values (optional)\
+  randomSeed(100);\
+\}\
+\
+void draw() \{\
+  background(255);\
+  \
+  // Generate random values and apply noise reduction\
+  eegValue = alpha * previousEeg + (1 - alpha) * random(300, 1024); // EEG range with smoothing\
+  emgValue = alpha * previousEmg + (1 - alpha) * random(0, 1024);   // EMG range with smoothing\
+  spo2Value = alpha * previousSpo2 + (1 - alpha) * random(90, 100); // Simulated SPO2 with smoothing\
+  \
+  // Save current values for smoothing\
+  previousEeg = eegValue;\
+  previousEmg = emgValue;\
+  previousSpo2 = spo2Value;\
+  \
+  // Store values in arrays for plotting\
+  eegData[currentIndex] = eegValue;\
+  emgData[currentIndex] = emgValue;\
+  spo2Data[currentIndex] = spo2Value;\
+  \
+  currentIndex = (currentIndex + 1) % totalPoints;\
+  \
+  // Calculate the elapsed time\
+  timeElapsed += updateInterval;\
+  \
+  // Draw the EEG graph\
+  drawGraph(50, 50, eegData, "EEG Sensor (uV)", 1024, 300);\
+  \
+  // Draw the EMG graph\
+  //drawGraph(50, 300, emgData, "EMG Sensor (mV)", 1024, 0);\
+  \
+  // Draw the SPO2 graph\
+  drawGraph(50, 550, spo2Data, "SPO2 (%)", 100, 90);\
+  \
+  // Simulate a delay before updating the graph again\
+  delay(updateInterval);\
+\}\
+\
+void drawGraph(int x, int y, float[] data, String label, float maxY, float minY) \{\
+  // Draw background and axis\
+  stroke(0);\
+  fill(240);\
+  rect(x, y, graphWidth, 200);\
+  \
+  fill(0);\
+  textAlign(LEFT);\
+  text(label, x + 10, y - 10);\
+  \
+  // Draw x-axis (time)\
+  line(x, y + 180, x + graphWidth, y + 180);\
+  for (int i = 0; i <= 10; i++) \{\
+    int tickX = x + i * graphWidth / 10;\
+    line(tickX, y + 180, tickX, y + 185);\
+    textAlign(CENTER);\
+    text(i + " sec", tickX, y + 200);\
+  \}\
+  \
+  // Draw y-axis (sensor value)\
+  line(x, y, x, y + 180);\
+  for (int i = 0; i <= 5; i++) \{\
+    int tickY = y + 180 - i * 180 / 5;\
+    line(x - 5, tickY, x, tickY);\
+    textAlign(RIGHT);\
+    text(nf(minY + i * (maxY - minY) / 5, 0, 1), x - 10, tickY + 5);\
+  \}\
+  \
+  // Plot the sensor data\
+  stroke(0, 0, 255); // Line color\
+  noFill();\
+  beginShape();\
+  for (int i = 0; i < totalPoints; i++) \{\
+    int index = (currentIndex + i) % totalPoints;\
+    float val = map(data[index], minY, maxY, y + 180, y);\
+    vertex(x + i * graphWidth / totalPoints, val);\
+  \}\
+  endShape();\
+\}}

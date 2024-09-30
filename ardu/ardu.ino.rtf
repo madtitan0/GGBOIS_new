@@ -1,0 +1,94 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2812
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 for GitHub Arduino #include <Arduino.h>\
+\
+int eegPin = A0;  // EEG sensor connected to A0\
+int emgPin = A1;  // EMG sensor connected to A1\
+int max30100Pin = A2;  // Simulated MAX30100 (SPO2) connected to A2\
+\
+const int numReadings = 10;  // Number of readings to average for noise filtering\
+int eegReadings[numReadings]; // EEG reading buffer\
+int emgReadings[numReadings]; // EMG reading buffer\
+int max30100Readings[numReadings]; // MAX30100 reading buffer\
+int eegIndex = 0;  // Current index in the EEG reading buffer\
+int emgIndex = 0;  // Current index in the EMG reading buffer\
+int max30100Index = 0;  // Current index in the MAX30100 reading buffer\
+int eegTotal = 0;  // Total of EEG readings for averaging\
+int emgTotal = 0;  // Total of EMG readings for averaging\
+int max30100Total = 0;  // Total of MAX30100 readings for averaging\
+int eegAverage = 0;  // Moving average of EEG\
+int emgAverage = 0;  // Moving average of EMG\
+int max30100Average = 0;  // Moving average of MAX30100\
+\
+// Threshold for detecting muscle activity in EMG\
+const int emgThreshold = 600;\
+\
+void setup() \{\
+    Serial.begin(115200); // Start serial communication at 115200 baud rate\
+\
+    // Initialize all readings to 0\
+    for (int i = 0; i < numReadings; i++) \{\
+        eegReadings[i] = 0;\
+        emgReadings[i] = 0;\
+        max30100Readings[i] = 0;\
+    \}\
+\
+    // Print headers for Serial Plotter\
+    Serial.println("EEG,EMG,MAX30100");\
+\}\
+\
+void loop() \{\
+    // Read actual sensor values from the pins\
+    int eegValue = analogRead(eegPin);   // Read EEG sensor value from A0\
+    int emgValue = analogRead(emgPin);   // Read EMG sensor value from A1\
+    int max30100Value = analogRead(max30100Pin); // Read SPO2 data from A2\
+\
+    // Update moving averages for noise reduction (EEG)\
+    eegTotal -= eegReadings[eegIndex];  \
+    eegReadings[eegIndex] = eegValue;  \
+    eegTotal += eegReadings[eegIndex];  \
+    eegIndex = (eegIndex + 1) % numReadings;  \
+    eegAverage = eegTotal / numReadings;\
+\
+    // Update moving averages for noise reduction (EMG)\
+    emgTotal -= emgReadings[emgIndex];\
+    emgReadings[emgIndex] = emgValue;\
+    emgTotal += emgReadings[emgIndex];\
+    emgIndex = (emgIndex + 1) % numReadings;\
+\
+    // Calculate moving average for EMG with noise reduction\
+    if (emgAverage < emgThreshold && emgValue >= emgThreshold) \{\
+        emgAverage = emgValue; // Capture spike directly if above threshold\
+    \} else \{\
+        emgAverage = emgTotal / numReadings; \
+    \}\
+\
+    // Update moving averages for noise reduction (MAX30100)\
+    max30100Total -= max30100Readings[max30100Index];\
+    max30100Readings[max30100Index] = max30100Value;\
+    max30100Total += max30100Readings[max30100Index];\
+    max30100Index = (max30100Index + 1) % numReadings;\
+    max30100Average = (max30100Total / numReadings) + 3;\
+\
+    // Print values to the Serial Monitor for debugging\
+    Serial.print("EEG: ");\
+    Serial.print(eegAverage);\
+    Serial.print(", EMG: ");\
+    Serial.print(emgAverage);\
+    Serial.print(", SPO2: ");\
+    Serial.println(max30100Average);\
+\
+    // Send formatted data to the Serial Plotter\
+    Serial.print(eegAverage);  \
+    Serial.print(",");\
+    Serial.print(emgAverage);  \
+    Serial.print(",");\
+    Serial.println(max30100Average);  \
+\
+    delay(500);  \
+\}}
